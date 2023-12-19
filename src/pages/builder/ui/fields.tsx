@@ -10,6 +10,7 @@ import {
   Textarea,
   TypographyP,
 } from '~/shared/ui';
+import { TypographyH2 } from '~/shared/ui/typography/typographyH2';
 
 export type FieldType = {
   id: Id;
@@ -90,12 +91,11 @@ export const renderers: Record<string, (props: any) => JSX.Element> = {
 const Text = () => {
   return (
     <>
+      <TypographyH2>Lorem, ipsum dolor.</TypographyH2>
       <TypographyP>
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Quos natus soluta sit numquam saepe, corrupti dolorum,
-        deleniti quo a beatae perspiciatis rem expedita tempore obcaecati porro dolorem? Voluptates, enim commodi?
-        Quaerat ratione ex excepturi ad, quis voluptatibus voluptates sapiente perferendis adipisci sequi modi inventore
-        labore minus delectus a libero consequuntur beatae doloribus reprehenderit ullam aliquid nobis quibusdam quod
-        qui. Amet.
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellendus illum, iure cum necessitatibus consequatur
+        voluptatum vitae amet! Officia aliquid perferendis mollitia ipsa laudantium tempore deleniti consequuntur
+        voluptatem tempora, nesciunt fugit.
       </TypographyP>
     </>
   );

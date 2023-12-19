@@ -17,7 +17,8 @@ import { FieldType, StableFieldType } from './fields';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useImmer } from 'use-immer';
 import { useAppDispatch, useAppSelector } from '~/app/hooks';
-import { addField, fieldsSelector } from '~/pages/builder';
+import { addField, fieldsSelector, removeField, updateFieldIndex } from '~/pages/builder';
+import { Announcements } from '~/pages/builder/ui';
 
 function getData(prop: Active | Over | null) {
   return prop?.data?.current ?? {};
@@ -34,14 +35,15 @@ function createSpacer({ id }: { id: Id }) {
 export const Builder = () => {
   const dispatch = useAppDispatch();
   const storeFields = useAppSelector(fieldsSelector);
+
+  console.log(storeFields);
+
   const mouseSensor = useSensor(MouseSensor, {
     // Require the mouse to move by 10 pixels before activating
     activationConstraint: {
       distance: 10,
     },
   });
-
-  console.log(storeFields);
 
   const sensors = useSensors(mouseSensor);
 
@@ -55,6 +57,14 @@ export const Builder = () => {
   const [data, updateData] = useImmer<{ fields: FieldType[] }>({
     fields: storeFields,
   });
+
+  useEffect(() => {
+    updateData((draft) => {
+      draft.fields = [...storeFields];
+    });
+  }, [storeFields]);
+
+  console.log('immerstate', data.fields);
 
   const cleanUp = () => {
     setActiveSidebarField(null);
@@ -152,7 +162,7 @@ export const Builder = () => {
   };
 
   const onDragEnd = (event: DragEndEvent) => {
-    const { over } = event;
+    const { over, active } = event;
 
     // We dropped outside of the over so clean up so we can start fresh.
     if (!over) {
@@ -160,6 +170,8 @@ export const Builder = () => {
       updateData((draft) => {
         draft.fields = draft.fields.filter((f) => f.type !== 'spacer');
       });
+      dispatch(removeField({ id: active.data.current?.field.id }));
+
       return;
     }
 
@@ -169,16 +181,23 @@ export const Builder = () => {
     // we just swap out the spacer with the referenced field.
     const nextField = currentDragFieldRef.current;
 
-    const overData = getData(over);
-
     if (nextField) {
+      console.log('active', active);
+      console.log('over', over);
+      const overData = getData(over);
+      const activeData = getData(active);
+
       const spacerIndex = data.fields.findIndex((f) => f.type === 'spacer');
       updateData((draft) => {
         draft.fields.splice(spacerIndex, 1, nextField);
-        draft.fields = arrayMove(draft.fields, spacerIndex, overData.index || 0);
+        draft.fields = arrayMove(
+          draft.fields,
+          spacerIndex,
+          !overData?.isContainer ? overData.index : draft.fields.length,
+        );
       });
-      dispatch(addField({ field: nextField, index: spacerIndex }));
-      // dispatch(increment({ field: nextField, index: spacerIndex }));
+      if (activeData?.fromSidebar) dispatch(addField({ field: nextField, index: spacerIndex }));
+      else dispatch(updateFieldIndex({ id: activeData?.id, index: spacerIndex }));
     }
 
     setSidebarFieldsRegenKey(Date.now());
@@ -190,6 +209,7 @@ export const Builder = () => {
   return (
     <div className="flex h-screen w-screen flex-row">
       <DndContext onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} sensors={sensors}>
+        <Announcements />
         <Sidebar fieldsRegKey={sidebarFieldsRegenKey} />
         <SortableContext strategy={verticalListSortingStrategy} items={fields.map((f) => f.id)}>
           <Canvas fields={fields} />

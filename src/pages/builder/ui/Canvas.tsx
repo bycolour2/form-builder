@@ -1,11 +1,13 @@
-import { cn } from '~/shared/lib';
+import { cn, useClickOutside } from '~/shared/lib';
 import { FieldType, renderers } from './fields';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '~/shared/ui';
 import { Edit, Trash } from 'lucide-react';
+import { useAppDispatch } from '~/app/hooks';
+import { removeField } from '~/pages/builder';
 
 const getRenderer = (type: string) => {
   if (type === 'spacer') {
@@ -17,15 +19,25 @@ const getRenderer = (type: string) => {
   return renderers[type] || (() => <div>No renderer found for {type}</div>);
 };
 
-const ElementOverlay = () => {
+type ElementOverlayProps = { id: Id; onClose: () => void };
+
+const ElementOverlay = ({ id, onClose }: ElementOverlayProps) => {
+  const overlayRef = useRef(null);
+  const dispatch = useAppDispatch();
+  useClickOutside(overlayRef, onClose);
   return (
-    <div className="absolute h-full w-full rounded-sm border-4 border-blue-500">
+    <div ref={overlayRef} className="absolute h-full w-full rounded-sm border-4 border-blue-500">
       <div className="relative">
         <div className="absolute right-0 top-0 rounded-bl-md bg-blue-500 pb-1 pl-1">
           <Button variant={'ghost'} size={'icon'} className="hover:bg-blue-700">
             <Edit className="h-4 w-4 text-white" />
           </Button>
-          <Button variant={'ghost'} size={'icon'} className="hover:bg-blue-700">
+          <Button
+            variant={'ghost'}
+            size={'icon'}
+            onClick={() => dispatch(removeField({ id }))}
+            className="hover:bg-blue-700"
+          >
             <Trash className="h-4 w-4 text-white" />
           </Button>
         </div>
@@ -35,7 +47,6 @@ const ElementOverlay = () => {
 };
 
 type FieldProps = {
-  // field: RegularFieldType | FieldToAddType;
   field: FieldType;
   overlay?: boolean;
 };
@@ -45,13 +56,12 @@ export const Field = (props: FieldProps) => {
   const { type } = field;
   const [isElementOverlayOpened, setIsElementOverlayOpened] = useState(false);
 
+  const hideOverlay = () => setIsElementOverlayOpened((prev) => !prev);
+
   const Component = getRenderer(type);
   return (
-    <div
-      onClick={() => setIsElementOverlayOpened((prev) => !prev)}
-      className={cn('relative', type !== 'spacer' && 'rounded-md bg-white')}
-    >
-      {isElementOverlayOpened ? <ElementOverlay /> : null}
+    <div onClick={hideOverlay} className={cn('relative', type !== 'spacer' && 'rounded-md bg-white')}>
+      {isElementOverlayOpened ? <ElementOverlay id={field.id} onClose={hideOverlay} /> : null}
       <div className="p-3">
         <Component id={field.id} {...rest} />
       </div>
@@ -85,16 +95,20 @@ type CanvasProps = {
 export const Canvas = (props: CanvasProps) => {
   const { fields } = props;
 
-  const { setNodeRef } = useDroppable({
+  const { setNodeRef, isOver } = useDroppable({
     id: 'canvas_dropable',
     data: { parent: null, isContainer: true },
   });
   return (
     <div
-      ref={setNodeRef}
-      className="mx-16 my-12 flex w-[calc(100vw-250px)] flex-grow flex-col justify-start gap-3 overflow-y-auto border-2 border-gray-400 bg-gray-200 p-6"
+      className={cn(
+        'mx-16 my-12 flex-grow basis-0 overflow-y-auto border-2 border-gray-400 bg-gray-200 p-6',
+        isOver ? 'border-4 border-dashed' : '',
+      )}
     >
-      {fields?.map((f, i) => <SortableField key={f.id} field={f} id={f.id} index={i} />)}
+      <div ref={setNodeRef} className="flex h-full flex-col justify-start gap-3 ">
+        {fields?.map((f, i) => <SortableField key={f.id} field={f} id={f.id} index={i} />)}
+      </div>
     </div>
   );
 };
