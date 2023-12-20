@@ -5,10 +5,12 @@ export function useClickOutside(ref: RefObject<any>, cb?: () => void) {
     /**
      * Alert if clicked on outside of element
      */
+    console.log(ref.current);
+
     function handleClickOutside(event: MouseEvent) {
       if (ref.current && !ref.current.contains(event.target)) {
         if (cb) cb();
-        else alert('You clicked outside of me!');
+        else console.log('You clicked outside of me!');
       }
     }
     // Bind the event listener

@@ -1,12 +1,20 @@
-import { arrayMove } from '@dnd-kit/sortable';
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { arrayMove, arraySwap } from '@dnd-kit/sortable';
+import { createSlice, current, PayloadAction } from '@reduxjs/toolkit';
 import { FieldType } from '~/pages/builder/ui';
 
 export interface BuilderState {
   fields: FieldType[];
+  editField: {
+    field: FieldType | null;
+    elementProps: any | null;
+  };
 }
 const initialState: BuilderState = {
   fields: [],
+  editField: {
+    field: null,
+    elementProps: null,
+  },
 };
 
 export const builderSlice = createSlice({
@@ -20,14 +28,18 @@ export const builderSlice = createSlice({
       }
       state.fields.splice(action.payload.index, 0, action.payload.field);
     },
-    // replaceField: (state, action: PayloadAction<{ field: FieldType; index: number }>) => {},
+    setFields: (state, action: PayloadAction<{ fields: FieldType[] }>) => {
+      state.fields = action.payload.fields;
+    },
     updateFieldIndex: (state, action: PayloadAction<{ id: Id; index: number }>) => {
       const currentIndex = state.fields.findIndex((f) => (f.id = action.payload.id));
       if (currentIndex < 0) {
         console.log(`builderSlice -> addField -> field with id ${action.payload.id} not found`);
         return;
       }
-      state.fields = arrayMove(state.fields, currentIndex, action.payload.index);
+      // const fields = state.fields;
+      // const currentState = current(state);
+      // console.log('dropped id', action.payload.id);
     },
     removeField: (state, action: PayloadAction<{ id: Id }>) => {
       console.log(`builderSlice -> removeField -> field with id: ${action.payload.id} deleted`);
@@ -37,12 +49,23 @@ export const builderSlice = createSlice({
     removeSpacers: (state) => {
       state.fields = state.fields.filter((f) => f.type !== 'spacer');
     },
+
+    setEditField: (state, action: PayloadAction<{ id: Id }>) => {
+      const field = state.fields.find((f) => f.id === action.payload.id);
+      if (!field) {
+        console.log(`builderSlice -> setEditField -> field with id: ${action.payload.id} not found`);
+        return;
+      }
+      state.editField.field = field;
+    },
     resetState: () => initialState,
   },
 });
 
-export const { addField, updateFieldIndex, removeField, removeSpacers, resetState } = builderSlice.actions;
+export const { addField, setFields, updateFieldIndex, removeField, removeSpacers, setEditField, resetState } =
+  builderSlice.actions;
 
 export const fieldsSelector = (state: RootState) => state.builder.fields;
+export const editFieldSelector = (state: RootState) => state.builder.editField;
 
 export default builderSlice.reducer;

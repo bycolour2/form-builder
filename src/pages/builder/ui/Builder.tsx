@@ -12,12 +12,12 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { Canvas, Field } from './Canvas';
+import { Canvas, Field, FieldOverlay } from './Canvas';
 import { FieldType, StableFieldType } from './fields';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useImmer } from 'use-immer';
 import { useAppDispatch, useAppSelector } from '~/app/hooks';
-import { addField, fieldsSelector, removeField, updateFieldIndex } from '~/pages/builder';
+import { addField, fieldsSelector, removeField, setFields, updateFieldIndex } from '~/pages/builder';
 import { Announcements } from '~/pages/builder/ui';
 
 function getData(prop: Active | Over | null) {
@@ -36,7 +36,7 @@ export const Builder = () => {
   const dispatch = useAppDispatch();
   const storeFields = useAppSelector(fieldsSelector);
 
-  console.log(storeFields);
+  // console.log(storeFields);
 
   const mouseSensor = useSensor(MouseSensor, {
     // Require the mouse to move by 10 pixels before activating
@@ -64,7 +64,7 @@ export const Builder = () => {
     });
   }, [storeFields]);
 
-  console.log('immerstate', data.fields);
+  // console.log('immerstate', data.fields);
 
   const cleanUp = () => {
     setActiveSidebarField(null);
@@ -182,8 +182,8 @@ export const Builder = () => {
     const nextField = currentDragFieldRef.current;
 
     if (nextField) {
-      console.log('active', active);
-      console.log('over', over);
+      // console.log('active', active);
+      // console.log('over', over);
       const overData = getData(over);
       const activeData = getData(active);
 
@@ -197,7 +197,13 @@ export const Builder = () => {
         );
       });
       if (activeData?.fromSidebar) dispatch(addField({ field: nextField, index: spacerIndex }));
-      else dispatch(updateFieldIndex({ id: activeData?.id, index: spacerIndex }));
+      else
+        dispatch(
+          setFields({
+            fields: arrayMove(storeFields, spacerIndex, !overData?.isContainer ? overData.index : storeFields.length),
+          }),
+        );
+      // else dispatch(updateFieldIndex({ id: activeData?.id, index: spacerIndex }));
     }
 
     setSidebarFieldsRegenKey(Date.now());
@@ -216,7 +222,7 @@ export const Builder = () => {
         </SortableContext>
         <DragOverlay dropAnimation={null}>
           {activeSidebarField ? <SidebarField overlay field={activeSidebarField} /> : null}
-          {activeField ? <Field overlay field={activeField} /> : null}
+          {activeField ? <FieldOverlay field={activeField} /> : null}
         </DragOverlay>
       </DndContext>
       <div className="flex w-[250px] flex-col border-l border-black">
