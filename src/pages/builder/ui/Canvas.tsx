@@ -1,5 +1,5 @@
 import { cn, useClickOutside } from '~/shared/lib';
-import { FieldType, renderers } from './fields';
+import { FieldType, renderers, renderersD } from './fields';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
@@ -14,12 +14,12 @@ const getRenderer = (type: string) => {
     return () => <div className={cn('h-20 rounded-md bg-black px-3 py-2.5 text-red-500 opacity-40')}>spacer</div>;
   }
 
-  return renderers[type] || (() => <div>No renderer found for {type}</div>);
+  return renderersD[type].renderer || (() => <div>No renderer found for {type}</div>);
 };
 
-type ElementOverlayProps = { id: Id; onClose: () => void };
+type ElementOverlayProps = { field: FieldType; onClose: () => void };
 
-const ElementOverlay = ({ id, onClose }: ElementOverlayProps) => {
+const ElementOverlay = ({ field, onClose }: ElementOverlayProps) => {
   const dispatch = useAppDispatch();
   const overlayRef = useRef(null);
   useClickOutside(overlayRef, onClose);
@@ -31,7 +31,7 @@ const ElementOverlay = ({ id, onClose }: ElementOverlayProps) => {
           <Button
             variant={'ghost'}
             size={'icon'}
-            onClick={() => dispatch(setEditField({ id }))}
+            onClick={() => dispatch(setEditField({ id: field.id, fieldProps: renderersD[field.type].availableProps }))}
             className="hover:bg-blue-700"
           >
             <Edit className="h-4 w-4 text-white" />
@@ -39,7 +39,7 @@ const ElementOverlay = ({ id, onClose }: ElementOverlayProps) => {
           <Button
             variant={'ghost'}
             size={'icon'}
-            onClick={() => dispatch(removeField({ id }))}
+            onClick={() => dispatch(removeField({ id: field.id }))}
             className="hover:bg-blue-700"
           >
             <Trash className="h-4 w-4 text-white" />
@@ -86,7 +86,7 @@ export const Field = (props: FieldProps) => {
   return (
     <div onClick={onClick} className={cn('relative', type !== 'spacer' && 'rounded-md bg-white')}>
       <div className="absolute h-full w-full"></div>
-      {isElementOverlayOpened ? <ElementOverlay id={field.id} onClose={onClose} /> : null}
+      {isElementOverlayOpened ? <ElementOverlay field={field} onClose={onClose} /> : null}
       <div className="select-none p-3">
         <Component id={field.id} {...rest} />
       </div>

@@ -50,13 +50,14 @@ export const builderSlice = createSlice({
       state.fields = state.fields.filter((f) => f.type !== 'spacer');
     },
 
-    setEditField: (state, action: PayloadAction<{ id: Id }>) => {
+    setEditField: (state, action: PayloadAction<{ id: Id; fieldProps?: any }>) => {
       const field = state.fields.find((f) => f.id === action.payload.id);
       if (!field) {
         console.log(`builderSlice -> setEditField -> field with id: ${action.payload.id} not found`);
         return;
       }
       state.editField.field = field;
+      state.editField.elementProps = action.payload.fieldProps;
     },
     resetState: () => initialState,
   },

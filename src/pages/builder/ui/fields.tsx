@@ -1,7 +1,9 @@
 import { Label } from '@radix-ui/react-label';
 import {
   Button,
+  ButtonProps,
   Input,
+  InputProps,
   Select,
   SelectContent,
   SelectItem,
@@ -48,10 +50,66 @@ export const fields: StableFieldType[] = [
   },
 ];
 
-type Render = {
+type FieldDescription = {
   type: string;
+  availableProps: Record<string, any>; //InputProps | ButtonProps;
   renderer: (props: any) => JSX.Element;
-  availableProps: Record<string, any>;
+};
+
+export const renderersD: Record<string, FieldDescription> = {
+  input: {
+    type: 'input',
+    availableProps: { type: 'text', placeholder: 'Type your text' } as InputProps,
+    renderer: ({ id }: { id: Id }) => (
+      <>
+        <Label htmlFor={`input-${id}`} className="text-sm">
+          Input
+        </Label>
+        <Input id={`input-${id}`} placeholder="Type your text" type="text" />
+      </>
+    ),
+  },
+  select: {
+    type: 'select',
+    availableProps: {},
+    renderer: ({ id }: { id: Id }) => (
+      <>
+        <Label htmlFor={`select-${id}`} className="text-sm">
+          Select
+        </Label>
+        <Select>
+          <SelectTrigger id={`select-${id}`}>
+            <SelectValue placeholder="Select your something" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="something1">Something 1</SelectItem>
+            <SelectItem value="something2">Something 2</SelectItem>
+            <SelectItem value="something3">Something 3</SelectItem>
+          </SelectContent>
+        </Select>
+      </>
+    ),
+  },
+  textarea: {
+    type: 'textarea',
+    availableProps: {},
+    renderer: ({ id }: { id: Id }) => (
+      <>
+        <Label htmlFor={`textarea-${id}`}>Textarea</Label>
+        <Textarea placeholder="Type your text here." id={`textarea-${id}`} />
+      </>
+    ),
+  },
+  text: { type: 'text', availableProps: {}, renderer: () => <Text /> },
+  button: {
+    type: 'button',
+    availableProps: { type: 'button', asChild: true } as ButtonProps,
+    renderer: () => (
+      <Button type="button" variant={'default'}>
+        Button
+      </Button>
+    ),
+  },
 };
 
 export const renderers: Record<string, (props: any) => JSX.Element> = {
@@ -88,9 +146,9 @@ export const renderers: Record<string, (props: any) => JSX.Element> = {
   ),
   text: () => <Text />,
   button: () => (
-    <>
-      <Button variant={'default'}>Button</Button>
-    </>
+    <Button type="button" variant={'default'}>
+      Button
+    </Button>
   ),
 };
 
