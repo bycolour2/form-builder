@@ -11,9 +11,7 @@ import { editFieldSelector, removeField, setEditField } from '~/pages/builder';
 
 const getRenderer = (type: string) => {
   if (type === 'spacer') {
-    return () => {
-      return <div className={cn('h-20 rounded-md bg-black px-3 py-2.5 opacity-40')}>spacer</div>;
-    };
+    return () => <div className={cn('h-20 rounded-md bg-black px-3 py-2.5 text-red-500 opacity-40')}>spacer</div>;
   }
 
   return renderers[type] || (() => <div>No renderer found for {type}</div>);

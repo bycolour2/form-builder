@@ -48,6 +48,12 @@ export const fields: StableFieldType[] = [
   },
 ];
 
+type Render = {
+  type: string;
+  renderer: (props: any) => JSX.Element;
+  availableProps: Record<string, any>;
+};
+
 export const renderers: Record<string, (props: any) => JSX.Element> = {
   input: ({ id }: { id: Id }) => (
     <>
