@@ -6,6 +6,9 @@ export {
   removeField,
   removeSpacers,
   setEditField,
+  updateEditFieldProp,
+  saveEditFieldProps,
+  resetEditField,
   resetState,
 } from './builderSlice';
-export { fieldsSelector, editFieldSelector } from './builderSlice';
+export { fieldsSelector, fieldSelector, editFieldSelector } from './builderSlice';

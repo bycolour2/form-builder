@@ -1,5 +1,5 @@
 import { cn, useClickOutside } from '~/shared/lib';
-import { FieldType, renderers, renderersD } from './fields';
+import { FieldType, renderersD, renderersDTest } from './fields';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
@@ -7,40 +7,75 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '~/shared/ui';
 import { Edit, Trash } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '~/app/hooks';
-import { editFieldSelector, removeField, setEditField } from '~/pages/builder';
+import {
+  editFieldSelector,
+  fieldSelector,
+  removeField,
+  resetEditField,
+  setEditField,
+} from '~/pages/builder';
+import { useHover } from 'usehooks-ts';
 
 const getRenderer = (type: string) => {
   if (type === 'spacer') {
-    return () => <div className={cn('h-20 rounded-md bg-black px-3 py-2.5 text-red-500 opacity-40')}>spacer</div>;
+    return () => (
+      <div className={cn('h-20 rounded-md bg-black px-3 py-2.5 text-red-500 opacity-40')}>
+        spacer
+      </div>
+    );
   }
 
-  return renderersD[type].renderer || (() => <div>No renderer found for {type}</div>);
+  return renderersDTest[type].renderer || (() => <div>No renderer found for {type}</div>);
 };
 
-type ElementOverlayProps = { field: FieldType; onClose: () => void };
+type ElementOverlayProps = { field: FieldType };
 
-const ElementOverlay = ({ field, onClose }: ElementOverlayProps) => {
+const ElementOverlay = ({ field }: ElementOverlayProps) => {
   const dispatch = useAppDispatch();
   const overlayRef = useRef(null);
-  useClickOutside(overlayRef, onClose);
+
+  const editFieldInfo = useAppSelector(editFieldSelector);
+
+  const isElementEditing = editFieldInfo.field?.id === field.id;
 
   return (
-    <div ref={overlayRef} className="absolute h-full w-full rounded-sm border-4 border-blue-500">
+    <div
+      ref={overlayRef}
+      className={cn(
+        'absolute h-full w-full rounded-sm border-4 ',
+        isElementEditing ? 'border-blue-600' : 'border-blue-400',
+      )}
+    >
       <div className="relative">
-        <div className="absolute right-0 top-0 rounded-bl-md bg-blue-500 pb-1 pl-1">
+        <div
+          className={cn(
+            'absolute right-0 top-0 rounded-bl-md pb-1 pl-1',
+            isElementEditing ? 'bg-blue-600' : 'bg-blue-400',
+          )}
+        >
           <Button
             variant={'ghost'}
             size={'icon'}
-            onClick={() => dispatch(setEditField({ id: field.id, fieldProps: renderersD[field.type].availableProps }))}
-            className="hover:bg-blue-700"
+            onClick={() =>
+              dispatch(
+                setEditField({
+                  id: field.id,
+                  fieldProps: renderersDTest[field.type].availableProps,
+                }),
+              )
+            }
+            className={cn(isElementEditing ? 'hover:bg-blue-500' : 'hover:bg-blue-600')}
           >
             <Edit className="h-4 w-4 text-white" />
           </Button>
           <Button
             variant={'ghost'}
             size={'icon'}
-            onClick={() => dispatch(removeField({ id: field.id }))}
-            className="hover:bg-blue-700"
+            onClick={() => {
+              dispatch(removeField({ id: field.id }));
+              dispatch(resetEditField());
+            }}
+            className={cn(isElementEditing ? 'hover:bg-blue-500' : 'hover:bg-blue-600')}
           >
             <Trash className="h-4 w-4 text-white" />
           </Button>
@@ -58,12 +93,14 @@ export const FieldOverlay = (props: FieldOverlayProps) => {
   const { field, ...rest } = props;
   const { type } = field;
 
+  const storeField = useAppSelector(fieldSelector(field.id));
+
   const Component = getRenderer(type);
   return (
     <div className={cn('relative', type !== 'spacer' && 'rounded-md bg-white')}>
       <div className="absolute h-full w-full"></div>
       <div className="p-3">
-        <Component id={field.id} {...rest} />
+        <Component id={field.id} {...rest} {...storeField?.fieldProps} />
       </div>
     </div>
   );
@@ -73,22 +110,22 @@ type FieldProps = {
   field: FieldType;
   overlay?: boolean;
   isDragging?: boolean;
-  onClick?: () => void;
-  onClose: () => void;
   isElementOverlayOpened?: boolean;
 };
 
 export const Field = (props: FieldProps) => {
-  const { field, overlay, isDragging, onClick, onClose, isElementOverlayOpened, ...rest } = props;
+  const { field, overlay, isDragging, isElementOverlayOpened, ...rest } = props;
   const { type } = field;
+
+  const storeField = useAppSelector(fieldSelector(field.id));
 
   const Component = getRenderer(type);
   return (
-    <div onClick={onClick} className={cn('relative', type !== 'spacer' && 'rounded-md bg-white')}>
+    <div className={cn('relative', type !== 'spacer' && 'rounded-md bg-white')}>
       <div className="absolute h-full w-full"></div>
-      {isElementOverlayOpened ? <ElementOverlay field={field} onClose={onClose} /> : null}
+      {isElementOverlayOpened ? <ElementOverlay field={field} /> : null}
       <div className="select-none p-3">
-        <Component id={field.id} {...rest} />
+        <Component id={field.id} {...rest} {...storeField?.fieldProps} />
       </div>
     </div>
   );
@@ -98,17 +135,17 @@ type SortableFieldProps = { id: string | number; index: number; field: FieldType
 
 const SortableField = (props: SortableFieldProps) => {
   const { id, index, field, ...rest } = props;
-  const editField = useAppSelector(editFieldSelector);
+  const editFieldInfo = useAppSelector(editFieldSelector);
 
-  const [isElementOverlayOpened, setIsElementOverlayOpened] = useState(false);
+  const hoverRef = useRef(null);
+  const isHover = useHover(hoverRef);
+  const isElementEditing = editFieldInfo.field?.id === id;
 
-  const toggleOverlay = () => setIsElementOverlayOpened((prev) => !prev);
-  const closeOverlay = () => setIsElementOverlayOpened(false);
+  const isElementOverlayOpened = isHover || isElementEditing;
 
   const { setNodeRef, listeners, attributes, transform, transition, isDragging } = useSortable({
     id,
     data: { index, id, field },
-    disabled: isElementOverlayOpened,
   });
 
   const style = {
@@ -116,19 +153,13 @@ const SortableField = (props: SortableFieldProps) => {
     transition,
   };
 
-  useEffect(() => {
-    if (isDragging) setIsElementOverlayOpened(false);
-  }, [isDragging]);
-
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <div>
+      <div ref={hoverRef}>
         <Field
           field={field}
           {...rest}
           isDragging={isDragging}
-          onClick={toggleOverlay}
-          onClose={closeOverlay}
           isElementOverlayOpened={isElementOverlayOpened}
         />
       </div>

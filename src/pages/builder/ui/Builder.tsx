@@ -13,12 +13,18 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { Canvas, Field, FieldOverlay } from './Canvas';
-import { FieldType, StableFieldType } from './fields';
+import { FieldType, StableFieldType, renderersD, renderersDTest } from './fields';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useImmer } from 'use-immer';
 import { useAppDispatch, useAppSelector } from '~/app/hooks';
-import { addField, fieldsSelector, removeField, setFields, updateFieldIndex } from '~/pages/builder';
-import { Announcements } from '~/pages/builder/ui';
+import {
+  addField,
+  fieldsSelector,
+  removeField,
+  setFields,
+  updateFieldIndex,
+} from '~/pages/builder';
+import { Announcements, PopertiesSidebar } from '~/pages/builder/ui';
 
 function getData(prop: Active | Over | null) {
   return prop?.data?.current ?? {};
@@ -55,12 +61,12 @@ export const Builder = () => {
   const [activeSidebarField, setActiveSidebarField] = useState<StableFieldType | null>(null); // only for fields from the sidebar
   const [activeField, setActiveField] = useState<FieldType | null>(null); // only for fields that are in the form.
   const [data, updateData] = useImmer<{ fields: FieldType[] }>({
-    fields: storeFields,
+    fields: Object.values(storeFields).map((f) => f.fieldValue),
   });
 
   useEffect(() => {
     updateData((draft) => {
-      draft.fields = [...storeFields];
+      draft.fields = [...Object.values(storeFields).map((f) => f.fieldValue)];
     });
   }, [storeFields]);
 
@@ -196,11 +202,24 @@ export const Builder = () => {
           !overData?.isContainer ? overData.index : draft.fields.length,
         );
       });
-      if (activeData?.fromSidebar) dispatch(addField({ field: nextField, index: spacerIndex }));
+      if (activeData?.fromSidebar)
+        dispatch(
+          addField({
+            field: {
+              fieldValue: nextField,
+              fieldProps: renderersDTest[nextField.type].availableProps,
+            },
+            index: spacerIndex,
+          }),
+        );
       else
         dispatch(
           setFields({
-            fields: arrayMove(storeFields, spacerIndex, !overData?.isContainer ? overData.index : storeFields.length),
+            fields: arrayMove(
+              storeFields,
+              spacerIndex,
+              !overData?.isContainer ? overData.index : storeFields.length,
+            ),
           }),
         );
       // else dispatch(updateFieldIndex({ id: activeData?.id, index: spacerIndex }));
@@ -214,7 +233,12 @@ export const Builder = () => {
 
   return (
     <div className="flex h-screen w-screen flex-row">
-      <DndContext onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} sensors={sensors}>
+      <DndContext
+        onDragStart={onDragStart}
+        onDragOver={onDragOver}
+        onDragEnd={onDragEnd}
+        sensors={sensors}
+      >
         <Announcements />
         <Sidebar fieldsRegKey={sidebarFieldsRegenKey} />
         <SortableContext strategy={verticalListSortingStrategy} items={fields.map((f) => f.id)}>
@@ -225,9 +249,7 @@ export const Builder = () => {
           {activeField ? <FieldOverlay field={activeField} /> : null}
         </DragOverlay>
       </DndContext>
-      <div className="flex w-[250px] flex-col border-l border-black">
-        <div className="border-b border-black px-3.5 py-2.5 text-center">Properties</div>
-      </div>
+      <PopertiesSidebar />
     </div>
   );
 };
